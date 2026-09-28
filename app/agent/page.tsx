@@ -2,20 +2,31 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { SignedEnvelope, IntentMandate } from "@/lib/ap2/types";
+import { SignedEnvelope, IntentMandate, CartMandate } from "@/lib/ap2/types";
 import { verifyEnvelopeInBrowser } from "@/lib/ap2/verifyClient";
 
 type VerifyState = "idle" | "checking" | "valid" | "invalid";
 
 export default function AgentPage() {
   const [message, setMessage] = useState("หาหนังสือ Go ราคาไม่เกิน 500 บาท");
-  const [envelope, setEnvelope] = useState<SignedEnvelope<IntentMandate> | null>(null);
-  const [verifyState, setVerifyState] = useState<VerifyState>("idle");
-  const [loading, setLoading] = useState(false);
+  const [intentEnvelope, setIntentEnvelope] = useState<SignedEnvelope<IntentMandate> | null>(null);
+  const [intentVerify, setIntentVerify] = useState<VerifyState>("idle");
+  const [loadingIntent, setLoadingIntent] = useState(false);
+
+  const [cartEnvelope, setCartEnvelope] = useState<SignedEnvelope<CartMandate> | null>(null);
+  const [cartVerify, setCartVerify] = useState<VerifyState>("idle");
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [loadingCart, setLoadingCart] = useState(false);
+
+  const [tamperError, setTamperError] = useState<string | null>(null);
+  const [tamperLoading, setTamperLoading] = useState(false);
 
   async function askAgent() {
-    setLoading(true);
-    setVerifyState("idle");
+    setLoadingIntent(true);
+    setIntentVerify("idle");
+    setCartEnvelope(null);
+    setCartError(null);
+    setTamperError(null);
     try {
       const res = await fetch("/api/agent/intent", {
         method: "POST",
@@ -23,12 +34,58 @@ export default function AgentPage() {
         body: JSON.stringify({ message }),
       });
       const data: SignedEnvelope<IntentMandate> = await res.json();
-      setEnvelope(data);
-      setVerifyState("checking");
+      setIntentEnvelope(data);
+      setIntentVerify("checking");
       const ok = await verifyEnvelopeInBrowser(data);
-      setVerifyState(ok ? "valid" : "invalid");
+      setIntentVerify(ok ? "valid" : "invalid");
     } finally {
-      setLoading(false);
+      setLoadingIntent(false);
+    }
+  }
+
+  async function buildCart() {
+    if (!intentEnvelope) return;
+    setLoadingCart(true);
+    setCartError(null);
+    setCartVerify("idle");
+    try {
+      const res = await fetch("/api/agent/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(intentEnvelope),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCartError(data.error ?? "unknown error");
+        return;
+      }
+      setCartEnvelope(data);
+      setCartVerify("checking");
+      const ok = await verifyEnvelopeInBrowser(data);
+      setCartVerify(ok ? "valid" : "invalid");
+    } finally {
+      setLoadingCart(false);
+    }
+  }
+
+  async function tamperTest() {
+    if (!intentEnvelope) return;
+    setTamperLoading(true);
+    setTamperError(null);
+    try {
+      const tampered = {
+        ...intentEnvelope,
+        payload: { ...intentEnvelope.payload, constraints: { ...intentEnvelope.payload.constraints, maxAmountCents: intentEnvelope.payload.constraints.maxAmountCents + 100000 } },
+      };
+      const res = await fetch("/api/agent/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tampered),
+      });
+      const data = await res.json();
+      setTamperError(res.ok ? "⚠️ server accepted a tampered mandate (this should not happen)" : `merchant rejected it: "${data.error}"`);
+    } finally {
+      setTamperLoading(false);
     }
   }
 
@@ -50,26 +107,64 @@ export default function AgentPage() {
         />
         <button
           onClick={askAgent}
-          disabled={loading || message.trim().length === 0}
+          disabled={loadingIntent || message.trim().length === 0}
           className="self-start rounded-full bg-black text-white dark:bg-white dark:text-black text-sm px-5 py-2 disabled:opacity-40"
         >
-          {loading ? "Agent กำลังสร้าง mandate..." : "Ask agent"}
+          {loadingIntent ? "Agent กำลังสร้าง mandate..." : "Ask agent"}
         </button>
 
-        {envelope && (
+        {intentEnvelope && (
           <div className="mt-6 flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <span className="font-semibold">Intent Mandate</span>
-              <VerifyBadge state={verifyState} />
+              <span className="font-semibold">1. Intent Mandate</span>
+              <VerifyBadge state={intentVerify} />
+              <span className="text-xs text-zinc-400">signed by user agent</span>
             </div>
-            <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4">
-              {JSON.stringify(envelope, null, 2)}
+            <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 max-h-56">
+              {JSON.stringify(intentEnvelope, null, 2)}
             </pre>
             <p className="text-xs text-zinc-500">
-              Budget: ฿{(envelope.payload.constraints.maxAmountCents / 100).toFixed(2)} · หมดอายุ{" "}
-              {new Date(envelope.payload.expiresAt).toLocaleTimeString("th-TH")} · parsed by{" "}
-              {envelope.payload.parsedBy}
+              Budget: ฿{(intentEnvelope.payload.constraints.maxAmountCents / 100).toFixed(2)} · หมดอายุ{" "}
+              {new Date(intentEnvelope.payload.expiresAt).toLocaleTimeString("th-TH")} · parsed by{" "}
+              {intentEnvelope.payload.parsedBy}
             </p>
+
+            <div className="flex items-center gap-3 mt-2">
+              <button
+                onClick={buildCart}
+                disabled={loadingCart}
+                className="self-start rounded-full bg-black text-white dark:bg-white dark:text-black text-sm px-5 py-2 disabled:opacity-40"
+              >
+                {loadingCart ? "Merchant กำลังจัด cart..." : "2. Build cart (merchant)"}
+              </button>
+              <button
+                onClick={tamperTest}
+                disabled={tamperLoading}
+                className="self-start rounded-full border border-red-300 text-red-600 text-sm px-4 py-2 disabled:opacity-40"
+              >
+                {tamperLoading ? "กำลังทดสอบ..." : "ทดสอบ tamper intent"}
+              </button>
+            </div>
+
+            {tamperError && <p className="text-xs text-red-600">{tamperError}</p>}
+            {cartError && <p className="text-xs text-red-600">merchant ปฏิเสธ: {cartError}</p>}
+
+            {cartEnvelope && (
+              <div className="flex flex-col gap-3 mt-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">3. Cart Mandate</span>
+                  <VerifyBadge state={cartVerify} />
+                  <span className="text-xs text-zinc-400">signed by merchant (different key)</span>
+                </div>
+                <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 max-h-56">
+                  {JSON.stringify(cartEnvelope, null, 2)}
+                </pre>
+                <p className="text-xs text-zinc-500">
+                  รวม ฿{(cartEnvelope.payload.totalCents / 100).toFixed(2)} · {cartEnvelope.payload.items.length} เล่ม ·
+                  ผูกกับ intent {cartEnvelope.payload.intentMandateId.slice(0, 8)}…
+                </p>
+              </div>
+            )}
           </div>
         )}
       </main>
