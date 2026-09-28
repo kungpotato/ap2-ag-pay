@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import Stripe from "stripe";
-import { verifyEnvelope, signPayload } from "@/lib/ap2/sign";
+import { signPayload } from "@/lib/ap2/sign";
+import { verifyEnvelopeRemote } from "@/lib/ap2/verifyRemote";
 import { MERCHANT_PRIVATE_KEY_PEM, MERCHANT_PUBLIC_KEY_PEM } from "@/lib/ap2/merchant-keys";
 import { getStripeClient } from "@/lib/stripe";
 import { SignedEnvelope, IntentMandate, CartMandate, CartApproval, PaymentMandate } from "@/lib/ap2/types";
@@ -17,14 +18,26 @@ export async function POST(req: NextRequest) {
     approvalEnvelope: SignedEnvelope<CartApproval>;
   } = await req.json();
 
-  if (!verifyEnvelope(intentEnvelope)) {
-    return NextResponse.json({ error: "invalid Intent Mandate signature" }, { status: 400 });
+  const intentCheck = await verifyEnvelopeRemote(intentEnvelope);
+  if (!intentCheck.ok) {
+    return NextResponse.json(
+      { error: `remote verifier rejected Intent Mandate: ${intentCheck.reason ?? "invalid signature"}` },
+      { status: 400 }
+    );
   }
-  if (!verifyEnvelope(cartEnvelope)) {
-    return NextResponse.json({ error: "invalid Cart Mandate signature" }, { status: 400 });
+  const cartCheck = await verifyEnvelopeRemote(cartEnvelope);
+  if (!cartCheck.ok) {
+    return NextResponse.json(
+      { error: `remote verifier rejected Cart Mandate: ${cartCheck.reason ?? "invalid signature"}` },
+      { status: 400 }
+    );
   }
-  if (!verifyEnvelope(approvalEnvelope)) {
-    return NextResponse.json({ error: "invalid Cart Approval signature" }, { status: 400 });
+  const approvalCheck = await verifyEnvelopeRemote(approvalEnvelope);
+  if (!approvalCheck.ok) {
+    return NextResponse.json(
+      { error: `remote verifier rejected Cart Approval: ${approvalCheck.reason ?? "invalid signature"}` },
+      { status: 400 }
+    );
   }
   if (cartEnvelope.payload.intentMandateId !== intentEnvelope.payload.id) {
     return NextResponse.json({ error: "cart does not reference the given intent" }, { status: 400 });
