@@ -5,7 +5,7 @@
  * confirmation vs. async webhook truth) rather than schema/migrations.
  * State resets whenever the Next.js dev server restarts.
  */
-export type OrderStatus = "pending_confirmation" | "succeeded" | "failed";
+export type OrderStatus = "pending_confirmation" | "succeeded" | "failed" | "disputed";
 
 export type OrderEvent = {
   source: "sync-response" | "webhook";
