@@ -13,6 +13,7 @@ export type IntentMandate = {
   constraints: IntentConstraints;
   createdAt: string;
   expiresAt: string;
+  parsedBy: "llm" | "rule-based";
 };
 
 export type SignedEnvelope<T> = {
