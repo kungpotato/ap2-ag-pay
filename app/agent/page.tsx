@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { SignedEnvelope, IntentMandate, CartMandate, CartApproval, PaymentMandate } from "@/lib/ap2/types";
 import { verifyEnvelopeInBrowser } from "@/lib/ap2/verifyClient";
+import type { Order } from "@/lib/orderStore";
 
 type VerifyState = "idle" | "checking" | "valid" | "invalid";
 
@@ -34,6 +35,9 @@ export default function AgentPage() {
 
   const [tamperPayError, setTamperPayError] = useState<string | null>(null);
   const [tamperPayLoading, setTamperPayLoading] = useState(false);
+
+  const [order, setOrder] = useState<Order | null>(null);
+  const [orderLoading, setOrderLoading] = useState(false);
 
   async function askAgent() {
     setLoadingIntent(true);
@@ -135,8 +139,19 @@ export default function AgentPage() {
       setPaymentVerify("checking");
       const ok = await verifyEnvelopeInBrowser(data);
       setPaymentVerify(ok ? "valid" : "invalid");
+      await refreshOrder(data.payload.paymentIntentId);
     } finally {
       setLoadingPayment(false);
+    }
+  }
+
+  async function refreshOrder(paymentIntentId: string) {
+    setOrderLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${paymentIntentId}`);
+      if (res.ok) setOrder(await res.json());
+    } finally {
+      setOrderLoading(false);
     }
   }
 
@@ -343,9 +358,47 @@ export default function AgentPage() {
                           {JSON.stringify(paymentEnvelope, null, 2)}
                         </pre>
                         <p className="text-xs text-zinc-500">
-                          Stripe PaymentIntent {paymentEnvelope.payload.paymentIntentId} · status{" "}
+                          Stripe PaymentIntent {paymentEnvelope.payload.paymentIntentId} · sync response said{" "}
                           <span className="font-medium">{paymentEnvelope.payload.paymentIntentStatus}</span>
                         </p>
+                      </div>
+                    )}
+
+                    {order && (
+                      <div className="flex flex-col gap-3 mt-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">8. Order status (reconciliation)</span>
+                          <OrderStatusBadge status={order.status} />
+                          <button
+                            onClick={() => refreshOrder(order.paymentIntentId)}
+                            disabled={orderLoading}
+                            className="text-xs underline text-zinc-400 disabled:opacity-40"
+                          >
+                            {orderLoading ? "กำลังโหลด..." : "รีเฟรช"}
+                          </button>
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                          ตัว sync response จาก Stripe บอกว่า &quot;{paymentEnvelope?.payload.paymentIntentStatus}
+                          &quot; ทันที แต่ order จะยัง <code className="bg-zinc-100 dark:bg-zinc-800 px-1 rounded">pending_confirmation</code>{" "}
+                          จนกว่า webhook จะมายืนยันอิสระอีกที (async, มาทีหลัง)
+                        </p>
+                        <div className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 text-xs flex flex-col gap-2">
+                          {order.events.map((ev, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  ev.source === "webhook"
+                                    ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                                }`}
+                              >
+                                {ev.source}
+                              </span>
+                              <span className="text-zinc-500">{ev.type}</span>
+                              <span className="text-zinc-400">{new Date(ev.receivedAt).toLocaleTimeString("th-TH")}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -357,6 +410,18 @@ export default function AgentPage() {
       </main>
     </div>
   );
+}
+
+function OrderStatusBadge({ status }: { status: Order["status"] }) {
+  const styles: Record<Order["status"], string> = {
+    pending_confirmation: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+    succeeded: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    failed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  };
+  const label = { pending_confirmation: "⏳ pending confirmation", succeeded: "✓ confirmed", failed: "✕ failed" }[
+    status
+  ];
+  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[status]}`}>{label}</span>;
 }
 
 function VerifyBadge({ state }: { state: VerifyState }) {
