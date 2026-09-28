@@ -13,10 +13,12 @@ export async function POST(req: NextRequest) {
     intentEnvelope,
     cartEnvelope,
     approvalEnvelope,
+    simulate,
   }: {
     intentEnvelope: SignedEnvelope<IntentMandate>;
     cartEnvelope: SignedEnvelope<CartMandate>;
     approvalEnvelope: SignedEnvelope<CartApproval>;
+    simulate?: "decline";
   } = await req.json();
 
   const intentCheck = await verifyEnvelopeRemote(intentEnvelope);
@@ -66,7 +68,10 @@ export async function POST(req: NextRequest) {
     paymentIntent = await stripe.paymentIntents.create({
       amount: cartEnvelope.payload.totalCents,
       currency: "thb",
-      payment_method: "pm_card_visa",
+      // pm_card_chargeDeclined is a Stripe test-mode PaymentMethod token that
+      // always fails at the card network — lets us demo a decline without a
+      // real declined card. See docs/lessons/lesson-08-failure-scenarios.md.
+      payment_method: simulate === "decline" ? "pm_card_chargeDeclined" : "pm_card_visa",
       confirm: true,
       automatic_payment_methods: { enabled: true, allow_redirects: "never" },
       metadata: {
