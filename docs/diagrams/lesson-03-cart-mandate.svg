@@ -1,0 +1,73 @@
+<svg viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="l03-title l03-desc">
+  <title id="l03-title">Lesson 3: Cart Mandate verification and issuance</title>
+  <desc id="l03-desc">Browser sends a signed Intent Mandate to the merchant's cart route, which verifies the signature and expiry, rejects tampered mandates, and otherwise builds and signs a Cart Mandate with the merchant's own key, linked back to the intent.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/>
+    </marker>
+    <marker id="arrow-bad" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#c0392b"/>
+    </marker>
+  </defs>
+  <rect width="760" height="420" fill="#f5f5f5"/>
+
+  <text x="30" y="34" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LESSON 3 · CART MANDATE</text>
+  <text x="30" y="58" fill="#2d3142" font-size="20" font-family="'Instrument Serif', serif">Merchant confirms price, signs with its own key</text>
+
+  <!-- Lifelines -->
+  <line x1="90" y1="100" x2="90" y2="370" stroke="rgba(45,49,66,0.15)" stroke-width="1"/>
+  <line x1="330" y1="100" x2="330" y2="370" stroke="rgba(45,49,66,0.15)" stroke-width="1"/>
+  <line x1="600" y1="100" x2="600" y2="370" stroke="rgba(45,49,66,0.15)" stroke-width="1"/>
+
+  <rect x="30" y="72" width="120" height="28" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399"/>
+  <text x="90" y="90" text-anchor="middle" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">Browser</text>
+
+  <rect x="250" y="72" width="160" height="28" rx="6" fill="rgba(235,108,54,0.05)" stroke="#eb6c36"/>
+  <text x="330" y="90" text-anchor="middle" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">/api/agent/cart</text>
+
+  <rect x="530" y="72" width="140" height="28" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75"/>
+  <text x="600" y="90" text-anchor="middle" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">Catalog + merchant key</text>
+
+  <!-- 1: post intent envelope -->
+  <path d="M 90 128 L 330 128" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <rect x="130" y="110" width="160" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="210" y="120" text-anchor="middle" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">POST intent envelope</text>
+
+  <!-- verify step box -->
+  <rect x="270" y="145" width="120" height="26" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-dasharray="4,4"/>
+  <text x="330" y="162" text-anchor="middle" fill="#2d3142" font-size="9" font-family="'Geist Mono', monospace">verify + check TTL</text>
+
+  <!-- branch: invalid -> reject -->
+  <path d="M 330 190 L 90 190" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-bad)"/>
+  <rect x="140" y="172" width="150" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="215" y="182" text-anchor="middle" fill="#c0392b" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">400 invalid signature</text>
+
+  <!-- branch: valid -> build cart -->
+  <path d="M 330 222 L 600 222" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <rect x="380" y="204" width="170" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="465" y="214" text-anchor="middle" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">MATCH KEYWORDS/BUDGET</text>
+
+  <!-- sign box -->
+  <rect x="540" y="240" width="120" height="26" rx="6" fill="rgba(235,108,54,0.05)" stroke="#eb6c36" stroke-dasharray="4,4"/>
+  <text x="600" y="257" text-anchor="middle" fill="#2d3142" font-size="9" font-family="'Geist Mono', monospace">sign(merchant key)</text>
+
+  <!-- return cart -->
+  <path d="M 600 285 L 330 285" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+  <rect x="365" y="267" width="200" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="465" y="277" text-anchor="middle" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">SIGNED CART MANDATE</text>
+
+  <path d="M 330 318 L 90 318" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+  <rect x="130" y="300" width="160" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="210" y="310" text-anchor="middle" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">200 {cart envelope}</text>
+
+  <path d="M 90 348 L 90 348" stroke="none"/>
+  <text x="90" y="352" text-anchor="middle" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace">verify with merchant public key</text>
+
+  <!-- Legend -->
+  <line x1="30" y1="386" x2="730" y2="386" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+  <text x="30" y="402" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+  <text x="180" y="402" fill="#7a8399" font-size="9" font-family="'Instrument Serif', serif" font-style="italic">Red = rejected before any cart is built; coral = the merchant's own signed artifact.</text>
+</svg>
