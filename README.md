@@ -18,12 +18,14 @@ Open [http://localhost:3000](http://localhost:3000).
 | # | Lesson | Demo |
 |---|--------|------|
 | 1 | [โครงร่างร้านหนังสือ (Bookshop skeleton)](docs/lessons/lesson-01-bookshop-skeleton.md) — catalog + cart, no agent yet | ![lesson 1 demo](docs/screenshots/lesson-01-flow.gif) |
+| 2 | [Intent Mandate](docs/lessons/lesson-02-intent-mandate.md) — shopping agent turns a chat message into a signed, verifiable Intent Mandate (Ed25519) | ![lesson 2 demo](docs/screenshots/lesson-02-flow.gif) |
 
-More lessons (Intent Mandate, Cart Mandate, human-in-the-loop approval, Payment Mandate + Stripe, signature verification, webhooks, failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
+More lessons (Cart Mandate, human-in-the-loop approval, Payment Mandate + Stripe, signature verification, webhooks, failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
 
 ## Stack
 
 - **Frontend**: Next.js (App Router) + Tailwind
 - **Protocol**: [AP2](https://github.com/google-agentic-commerce/AP2) mandates (Intent / Cart / Payment)
 - **Settlement**: Stripe
-- **Backend** (introduced from Lesson 5 onward): TypeScript (Next.js API routes) for orchestration/HTTP glue; Go reserved for any component that needs to run as a standalone service outside the Next.js process (e.g. a signature-verification microservice)
+- **Backend**: TypeScript (Next.js API routes) for orchestration/HTTP glue (from Lesson 2); Go reserved for any component that needs to run as a standalone service outside the Next.js process (e.g. a signature-verification microservice, from Lesson 6)
+- **Optional LLM**: OpenRouter (Gemini 3.8 Flash) for intent parsing, via `OPENROUTER_API_KEY` — falls back to a deterministic rule-based parser when unset
