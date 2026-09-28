@@ -39,6 +39,18 @@ export default function AgentPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderLoading, setOrderLoading] = useState(false);
 
+  const [budgetTestResult, setBudgetTestResult] = useState<string | null>(null);
+  const [budgetTestLoading, setBudgetTestLoading] = useState(false);
+
+  const [expiryTestResult, setExpiryTestResult] = useState<string | null>(null);
+  const [expiryTestLoading, setExpiryTestLoading] = useState(false);
+
+  const [declineTestResult, setDeclineTestResult] = useState<string | null>(null);
+  const [declineTestLoading, setDeclineTestLoading] = useState(false);
+
+  const [disputeResult, setDisputeResult] = useState<string | null>(null);
+  const [disputeLoading, setDisputeLoading] = useState(false);
+
   async function askAgent() {
     setLoadingIntent(true);
     setIntentVerify("idle");
@@ -155,6 +167,100 @@ export default function AgentPage() {
     }
   }
 
+  async function testInsufficientBudget() {
+    setBudgetTestLoading(true);
+    setBudgetTestResult(null);
+    try {
+      const intentRes = await fetch("/api/agent/intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "หาหนังสือ Go ราคาไม่เกิน 5 บาท" }),
+      });
+      const intentData = await intentRes.json();
+      const cartRes = await fetch("/api/agent/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(intentData),
+      });
+      const cartData = await cartRes.json();
+      setBudgetTestResult(
+        cartRes.ok
+          ? "⚠️ unexpected: merchant built a cart despite the ฿5 budget"
+          : `merchant ปฏิเสธ: "${cartData.error}"`
+      );
+    } finally {
+      setBudgetTestLoading(false);
+    }
+  }
+
+  async function testExpiredMandate() {
+    setExpiryTestLoading(true);
+    setExpiryTestResult(null);
+    try {
+      const intentRes = await fetch("/api/agent/intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "หาหนังสือ Go ราคาไม่เกิน 500 บาท", ttlSeconds: 2 }),
+      });
+      const intentData = await intentRes.json();
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      const cartRes = await fetch("/api/agent/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(intentData),
+      });
+      const cartData = await cartRes.json();
+      setExpiryTestResult(
+        cartRes.ok
+          ? "⚠️ unexpected: merchant built a cart from an expired intent"
+          : `merchant ปฏิเสธ: "${cartData.error}"`
+      );
+    } finally {
+      setExpiryTestLoading(false);
+    }
+  }
+
+  async function testCardDecline() {
+    if (!intentEnvelope || !cartEnvelope || !approvalEnvelope) return;
+    setDeclineTestLoading(true);
+    setDeclineTestResult(null);
+    try {
+      const res = await fetch("/api/agent/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intentEnvelope, cartEnvelope, approvalEnvelope, simulate: "decline" }),
+      });
+      const data = await res.json();
+      setDeclineTestResult(
+        res.ok ? "⚠️ unexpected: a declined test card still succeeded" : `Stripe ปฏิเสธ: "${data.error}"`
+      );
+    } finally {
+      setDeclineTestLoading(false);
+    }
+  }
+
+  async function simulateDispute() {
+    if (!paymentEnvelope) return;
+    setDisputeLoading(true);
+    setDisputeResult(null);
+    try {
+      const res = await fetch("/api/dev/simulate-dispute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentIntentId: paymentEnvelope.payload.paymentIntentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDisputeResult(`จำลอง dispute ไม่สำเร็จ: ${data.error}`);
+        return;
+      }
+      await refreshOrder(paymentEnvelope.payload.paymentIntentId);
+      setDisputeResult("ส่ง charge.dispute.created (จำลอง, เซ็นจริง) แล้ว — ดูสถานะ order ด้านล่าง");
+    } finally {
+      setDisputeLoading(false);
+    }
+  }
+
   async function tamperPayTest() {
     if (!intentEnvelope || !cartEnvelope || !approvalEnvelope) return;
     setTamperPayLoading(true);
@@ -224,6 +330,30 @@ export default function AgentPage() {
         >
           {loadingIntent ? "Agent กำลังสร้าง mandate..." : "Ask agent"}
         </button>
+
+        <div className="rounded-xl border border-dashed border-black/20 dark:border-white/20 p-4 flex flex-col gap-3 mt-4">
+          <span className="text-xs font-semibold text-zinc-500">
+            บทเรียนที่ 8 — ทดสอบสถานการณ์ล้มเหลว (สร้าง intent/cart ของตัวเอง ไม่กระทบ flow ด้านล่าง)
+          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={testInsufficientBudget}
+              disabled={budgetTestLoading}
+              className="rounded-full border border-orange-300 text-orange-600 text-xs px-4 py-2 disabled:opacity-40"
+            >
+              {budgetTestLoading ? "กำลังทดสอบ..." : "ทดสอบ: งบไม่พอ (฿5)"}
+            </button>
+            <button
+              onClick={testExpiredMandate}
+              disabled={expiryTestLoading}
+              className="rounded-full border border-orange-300 text-orange-600 text-xs px-4 py-2 disabled:opacity-40"
+            >
+              {expiryTestLoading ? "กำลังทดสอบ (รอ 2.5 วิ)..." : "ทดสอบ: intent หมดอายุ (TTL 2 วิ)"}
+            </button>
+          </div>
+          {budgetTestResult && <p className="text-xs text-orange-700 dark:text-orange-400">{budgetTestResult}</p>}
+          {expiryTestResult && <p className="text-xs text-orange-700 dark:text-orange-400">{expiryTestResult}</p>}
+        </div>
 
         {intentEnvelope && (
           <div className="mt-6 flex flex-col gap-3">
@@ -322,7 +452,17 @@ export default function AgentPage() {
                         >
                           {tamperPayLoading ? "กำลังทดสอบ..." : "ทดสอบ tamper แล้วจ่ายเงิน"}
                         </button>
+                        <button
+                          onClick={testCardDecline}
+                          disabled={declineTestLoading}
+                          className="self-start rounded-full border border-orange-300 text-orange-600 text-sm px-4 py-2 disabled:opacity-40"
+                        >
+                          {declineTestLoading ? "กำลังทดสอบ..." : "ทดสอบ card declined"}
+                        </button>
                       </div>
+                    )}
+                    {declineTestResult && (
+                      <p className="text-xs text-orange-700 dark:text-orange-400">{declineTestResult}</p>
                     )}
                     <p className="text-xs text-zinc-400">
                       ก่อนจ่ายเงินทุกครั้ง /api/agent/pay จะยิงไปให้{" "}
@@ -399,6 +539,32 @@ export default function AgentPage() {
                             </div>
                           ))}
                         </div>
+
+                        {order.status === "succeeded" && (
+                          <button
+                            onClick={simulateDispute}
+                            disabled={disputeLoading}
+                            className="self-start rounded-full border border-purple-300 text-purple-600 text-xs px-4 py-2 disabled:opacity-40"
+                          >
+                            {disputeLoading ? "กำลังจำลอง..." : "จำลอง dispute (charge.dispute.created)"}
+                          </button>
+                        )}
+                        {disputeResult && <p className="text-xs text-purple-700 dark:text-purple-400">{disputeResult}</p>}
+
+                        {order.status === "disputed" && (
+                          <div className="rounded-xl border border-purple-300 bg-purple-50 dark:bg-purple-950 p-4 text-xs flex flex-col gap-1">
+                            <span className="font-semibold text-purple-800 dark:text-purple-200">
+                              หลักฐาน AP2 mandate chain สำหรับ dispute
+                            </span>
+                            <span>Intent Mandate: {order.intentMandateId}</span>
+                            <span>Cart Mandate: {order.cartMandateId}</span>
+                            <span>Cart Approval: {order.cartApprovalId}</span>
+                            <span>Stripe PaymentIntent: {order.paymentIntentId}</span>
+                            <span className="text-purple-600 dark:text-purple-300 mt-1">
+                              ทั้ง 4 ใบผูกกันด้วย id ตั้งแต่ user พิมพ์คำขอ จนเงินเข้าบัญชี — ใช้เป็นหลักฐานตอบ dispute ได้ทันที
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
