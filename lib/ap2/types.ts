@@ -46,6 +46,20 @@ export type CartApproval = {
   createdAt: string;
 };
 
+export type PaymentMandate = {
+  type: "PaymentMandate";
+  id: string;
+  cartMandateId: string;
+  cartApprovalId: string;
+  intentMandateId: string;
+  amountCents: number;
+  currency: "THB";
+  paymentProvider: "stripe";
+  paymentIntentId: string;
+  paymentIntentStatus: string;
+  createdAt: string;
+};
+
 export type SignedEnvelope<T> = {
   payload: T;
   signature: string;
