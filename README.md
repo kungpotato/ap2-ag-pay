@@ -19,8 +19,9 @@ Open [http://localhost:3000](http://localhost:3000).
 |---|--------|------|
 | 1 | [โครงร่างร้านหนังสือ (Bookshop skeleton)](docs/lessons/lesson-01-bookshop-skeleton.md) — catalog + cart, no agent yet | ![lesson 1 demo](docs/screenshots/lesson-01-flow.gif) |
 | 2 | [Intent Mandate](docs/lessons/lesson-02-intent-mandate.md) — shopping agent turns a chat message into a signed, verifiable Intent Mandate (Ed25519) | ![lesson 2 demo](docs/screenshots/lesson-02-flow.gif) |
+| 3 | [Cart Mandate](docs/lessons/lesson-03-cart-mandate.md) — merchant verifies the Intent Mandate, builds a cart within budget, and signs it with its own key | ![lesson 3 demo](docs/screenshots/lesson-03-flow.gif) |
 
-More lessons (Cart Mandate, human-in-the-loop approval, Payment Mandate + Stripe, signature verification, webhooks, failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
+More lessons (human-in-the-loop approval, Payment Mandate + Stripe, signature verification, webhooks, failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
 
 ## Stack
 
