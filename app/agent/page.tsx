@@ -32,6 +32,9 @@ export default function AgentPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [loadingPayment, setLoadingPayment] = useState(false);
 
+  const [tamperPayError, setTamperPayError] = useState<string | null>(null);
+  const [tamperPayLoading, setTamperPayLoading] = useState(false);
+
   async function askAgent() {
     setLoadingIntent(true);
     setIntentVerify("idle");
@@ -134,6 +137,31 @@ export default function AgentPage() {
       setPaymentVerify(ok ? "valid" : "invalid");
     } finally {
       setLoadingPayment(false);
+    }
+  }
+
+  async function tamperPayTest() {
+    if (!intentEnvelope || !cartEnvelope || !approvalEnvelope) return;
+    setTamperPayLoading(true);
+    setTamperPayError(null);
+    try {
+      const tamperedApproval = {
+        ...approvalEnvelope,
+        payload: { ...approvalEnvelope.payload, approvedTotalCents: approvalEnvelope.payload.approvedTotalCents - 1 },
+      };
+      const res = await fetch("/api/agent/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intentEnvelope, cartEnvelope, approvalEnvelope: tamperedApproval }),
+      });
+      const data = await res.json();
+      setTamperPayError(
+        res.ok
+          ? "⚠️ payment went through with a tampered approval (this should not happen)"
+          : `remote verifier (Go, separate process) rejected it: "${data.error}"`
+      );
+    } finally {
+      setTamperPayLoading(false);
     }
   }
 
@@ -264,14 +292,30 @@ export default function AgentPage() {
                     </pre>
 
                     {!paymentEnvelope && (
-                      <button
-                        onClick={payWithStripe}
-                        disabled={loadingPayment}
-                        className="self-start rounded-full bg-indigo-600 text-white text-sm px-5 py-2 disabled:opacity-40"
-                      >
-                        {loadingPayment ? "กำลังเรียก Stripe..." : "6. Pay with Stripe (test mode)"}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={payWithStripe}
+                          disabled={loadingPayment}
+                          className="self-start rounded-full bg-indigo-600 text-white text-sm px-5 py-2 disabled:opacity-40"
+                        >
+                          {loadingPayment ? "กำลังเรียก Stripe..." : "6. Pay with Stripe (test mode)"}
+                        </button>
+                        <button
+                          onClick={tamperPayTest}
+                          disabled={tamperPayLoading}
+                          className="self-start rounded-full border border-red-300 text-red-600 text-sm px-4 py-2 disabled:opacity-40"
+                        >
+                          {tamperPayLoading ? "กำลังทดสอบ..." : "ทดสอบ tamper แล้วจ่ายเงิน"}
+                        </button>
+                      </div>
                     )}
+                    <p className="text-xs text-zinc-400">
+                      ก่อนจ่ายเงินทุกครั้ง /api/agent/pay จะยิงไปให้{" "}
+                      <span className="font-medium">Go verifier service (คนละ process, คนละภาษา)</span> ยืนยัน
+                      signature ทั้ง 3 ใบ ไม่เชื่อผลจาก Next.js เอง
+                    </p>
+
+                    {tamperPayError && <p className="text-xs text-red-600">{tamperPayError}</p>}
 
                     {paymentError && (
                       <p className="text-xs text-red-600">
@@ -291,7 +335,9 @@ export default function AgentPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">7. Payment Mandate</span>
                           <VerifyBadge state={paymentVerify} />
-                          <span className="text-xs text-zinc-400">signed by merchant · settled via Stripe</span>
+                          <span className="text-xs text-zinc-400">
+                            signed by merchant · settled via Stripe · chain verified by Go service
+                          </span>
                         </div>
                         <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 max-h-56">
                           {JSON.stringify(paymentEnvelope, null, 2)}
