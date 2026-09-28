@@ -10,7 +10,7 @@
 - `app/api/orders/[paymentIntentId]/route.ts` — endpoint อ่านสถานะ order ปัจจุบัน
 - `app/agent/page.tsx` — เพิ่ม "8. Order status (reconciliation)" แสดง badge สถานะ + ปุ่มรีเฟรช + event log ที่เห็นทั้งสอง source แยกกันชัดเจน
 
-![Reconciliation diagram บทเรียนที่ 7](../diagrams/lesson-07-webhook-reconciliation.svg)
+![Reconciliation diagram บทเรียนที่ 7](../diagrams/lesson-07-webhook-reconciliation.png)
 
 ## ผลลัพธ์จริง (Demo)
 ทดสอบกับ Stripe webhook จริงผ่าน `stripe listen --forward-to localhost:3100/api/webhooks/stripe` (ไม่ใช่ mock) เห็นการเปลี่ยนสถานะจาก pending ไปเป็น confirmed จริง:

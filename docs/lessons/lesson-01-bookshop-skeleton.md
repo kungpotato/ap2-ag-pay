@@ -8,7 +8,7 @@
 - `app/page.tsx` — หน้าแสดงรายการหนังสือ พร้อมปุ่ม "Add to cart"
 - `lib/cart.ts`, `app/cart/page.tsx` — สถานะตะกร้าเก็บใน `localStorage` ของ browser และปุ่ม "Checkout (manual, no agent yet)" ที่ยังกดไม่ได้จริง
 
-![สถาปัตยกรรมบทเรียนที่ 1](../diagrams/lesson-01-architecture.svg)
+![สถาปัตยกรรมบทเรียนที่ 1](../diagrams/lesson-01-architecture.png)
 
 ## ผลลัพธ์จริง (Demo)
 ![ขั้นตอนการ add to cart จนถึง checkout](../screenshots/lesson-01-flow.gif)

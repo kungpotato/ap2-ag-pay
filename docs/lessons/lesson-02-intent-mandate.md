@@ -13,7 +13,7 @@
 - `app/api/agent/intent/route.ts` — API route: รับข้อความ → parse → สร้าง `IntentMandate` → เซ็น → ส่ง `SignedEnvelope` กลับ
 - `app/agent/page.tsx` — หน้าแชทง่ายๆ ให้พิมพ์คำขอ กด "Ask agent" แล้วเห็น mandate ที่เซ็นแล้ว พร้อม badge ว่า signature ถูกต้องหรือไม่ (verify จริงฝั่ง browser)
 
-![Sequence diagram บทเรียนที่ 2](../diagrams/lesson-02-intent-mandate.svg)
+![Sequence diagram บทเรียนที่ 2](../diagrams/lesson-02-intent-mandate.png)
 
 ## ผลลัพธ์จริง (Demo)
 ![ขั้นตอนคุยกับ agent จนได้ signed Intent Mandate](../screenshots/lesson-02-flow.gif)

@@ -9,7 +9,7 @@
 - `app/api/agent/approve/route.ts` — API route ที่ verify **ทั้ง chain**: signature ของ intent, signature ของ cart, cart อ้างอิง intent ถูกต้อง, cart ยังไม่หมดอายุ, และ total ไม่เกินงบของ intent — ผ่านหมดถึงจะเซ็น `CartApproval` ด้วย human key
 - `app/agent/page.tsx` — เพิ่ม checkbox "Auto-approve cart ถ้าอยู่ในงบของ intent" และปุ่ม "4. Approve & authorize payment (human)" ที่โผล่มาเฉพาะตอนไม่ได้ติ๊ก auto-approve
 
-![State diagram บทเรียนที่ 4](../diagrams/lesson-04-human-approval.svg)
+![State diagram บทเรียนที่ 4](../diagrams/lesson-04-human-approval.png)
 
 ## ผลลัพธ์จริง (Demo)
 ![ขั้นตอนกด approve หลังเห็น cart mandate](../screenshots/lesson-04-flow.gif)

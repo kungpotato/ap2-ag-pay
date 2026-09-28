@@ -9,7 +9,7 @@
 - `app/api/agent/pay/route.ts` — verify **signature ทั้ง 3 ใบ** (intent, cart, approval) + เช็ก linkage ระหว่างกันทั้งหมด + เช็กว่า approved amount ตรงกับ cart total ก่อน แล้วค่อยเรียก Stripe สร้าง+confirm PaymentIntent (`pm_card_visa`, test mode) → เซ็น `PaymentMandate` ด้วย merchant key
 - `app/agent/page.tsx` — เพิ่มปุ่ม "6. Pay with Stripe (test mode)" และแสดง Payment Mandate พร้อมสถานะจาก Stripe จริง
 
-![Sequence diagram บทเรียนที่ 5](../diagrams/lesson-05-payment-mandate.svg)
+![Sequence diagram บทเรียนที่ 5](../diagrams/lesson-05-payment-mandate.png)
 
 ## ผลลัพธ์จริง (Demo)
 ![ขั้นตอนกด pay จนได้ payment mandate](../screenshots/lesson-05-flow.gif)

@@ -9,7 +9,7 @@
 - `app/api/agent/pay/route.ts` — เปลี่ยนจาก `verifyEnvelope()` (local) เป็น `verifyEnvelopeRemote()` (เรียก Go) สำหรับ signature ทั้ง 3 ใบ ก่อนจะเรียก Stripe แม้แต่ครั้งเดียว
 - `app/agent/page.tsx` — เพิ่มปุ่ม "ทดสอบ tamper แล้วจ่ายเงิน" ที่โชว์ error message ระบุชัดว่า "remote verifier (Go, separate process) rejected it"
 
-![Trust boundary diagram บทเรียนที่ 6](../diagrams/lesson-06-chain-of-custody.svg)
+![Trust boundary diagram บทเรียนที่ 6](../diagrams/lesson-06-chain-of-custody.png)
 
 ## ผลลัพธ์จริง (Demo)
 สคริปต์ capture ของบทเรียนนี้ควบคุมวงจรชีวิตของ Go service เอง (kill กลางคัน แล้ว restart) เพื่อให้ได้ภาพจากสถานการณ์ที่เกิดขึ้นจริง ไม่ใช่ mockup:

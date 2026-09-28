@@ -10,7 +10,7 @@
 - `app/api/dev/simulate-dispute/route.ts` — เครื่องมือ dev-only ที่สร้าง webhook event ปลอมแต่ **เซ็นจริง** ด้วย `stripe.webhooks.generateTestHeaderString()` แล้วยิงเข้า webhook endpoint จริงของเราเอง ผูกกับ order จริงที่มีอยู่ (ไม่ใช่ fixture ของ Stripe ที่สุ่มสร้างข้อมูลใหม่แยกต่างหาก)
 - `app/agent/page.tsx` — เพิ่มปุ่มทดสอบ 4 สถานการณ์ และ **evidence panel** ที่โชว์ mandate chain ครบ 4 id เมื่อ order ถูก dispute
 
-![Pipeline diagram บทเรียนที่ 8](../diagrams/lesson-08-failure-scenarios.svg)
+![Pipeline diagram บทเรียนที่ 8](../diagrams/lesson-08-failure-scenarios.png)
 
 ## ผลลัพธ์จริง (Demo)
 รันทั้ง 4 สถานการณ์ในสคริปต์เดียว ไม่มี mockup — ทุก error message มาจาก code path จริง:

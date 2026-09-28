@@ -10,7 +10,7 @@
 - `app/api/agent/cart/route.ts` — API route: รับ **signed Intent Mandate envelope** → `verifyEnvelope()` เช็ก signature และวันหมดอายุก่อนทำอะไรทั้งนั้น → ถ้าไม่ผ่านตอบ 400 ทันที → ถ้าผ่านค่อยสร้าง cart แล้วเซ็นด้วย merchant key
 - `app/agent/page.tsx` — เพิ่มปุ่ม "2. Build cart (merchant)" ต่อจาก Intent Mandate, badge แยกว่า cart เซ็นด้วย "merchant (different key)", และปุ่ม **"ทดสอบ tamper intent"** ที่แก้ `maxAmountCents` ของ intent แล้วยิงไป cart API ซ้ำ เพื่อโชว์ว่า merchant ปฏิเสธทันที
 
-![Sequence diagram บทเรียนที่ 3](../diagrams/lesson-03-cart-mandate.svg)
+![Sequence diagram บทเรียนที่ 3](../diagrams/lesson-03-cart-mandate.png)
 
 ## ผลลัพธ์จริง (Demo)
 ![Intent → Cart Mandate และการปฏิเสธ mandate ที่ถูกแก้](../screenshots/lesson-03-flow.gif)
