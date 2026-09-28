@@ -36,8 +36,9 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 | 5 | [Payment Mandate + Stripe](docs/lessons/lesson-05-payment-mandate.md) — verifies the full intent → cart → approval chain, settles via a real Stripe test-mode PaymentIntent, and signs the result as a Payment Mandate | ![lesson 5 demo](docs/screenshots/lesson-05-flow.gif) |
 | 6 | [Signature verification & chain of custody](docs/lessons/lesson-06-chain-of-custody.md) — a standalone Go service independently re-verifies every mandate before settlement; fails closed if it's unreachable | ![lesson 6 demo](docs/screenshots/lesson-06-flow.gif) |
 | 7 | [Webhooks + reconciliation](docs/lessons/lesson-07-webhook-reconciliation.md) — an order stays `pending_confirmation` until an independent Stripe webhook (not the synchronous response) confirms it | ![lesson 7 demo](docs/screenshots/lesson-07-flow.gif) |
+| 8 | [Failure & dispute scenarios](docs/lessons/lesson-08-failure-scenarios.md) — insufficient budget, an expired mandate, a declined card, and a simulated dispute resolved with the mandate chain as evidence | ![lesson 8 demo](docs/screenshots/lesson-08-flow.gif) |
 
-More lessons (failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
+That's the full workshop — see [docs/lessons](docs/lessons) for all write-ups.
 
 ## Stack
 
