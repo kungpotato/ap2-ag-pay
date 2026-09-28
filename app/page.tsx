@@ -6,9 +6,14 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <header className="border-b border-black/10 dark:border-white/10 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">📚 AP2 Bookshop</h1>
-        <Link href="/cart" className="text-sm font-medium underline">
-          Cart
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/agent" className="text-sm font-medium underline">
+            🤖 Shopping agent
+          </Link>
+          <Link href="/cart" className="text-sm font-medium underline">
+            Cart
+          </Link>
+        </div>
       </header>
       <main className="max-w-5xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
