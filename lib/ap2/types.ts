@@ -35,6 +35,17 @@ export type CartMandate = {
   expiresAt: string;
 };
 
+export type CartApproval = {
+  type: "CartApproval";
+  id: string;
+  cartMandateId: string;
+  intentMandateId: string;
+  approvedTotalCents: number;
+  currency: "THB";
+  approvalMethod: "human-click" | "auto-approved-within-budget";
+  createdAt: string;
+};
+
 export type SignedEnvelope<T> = {
   payload: T;
   signature: string;
