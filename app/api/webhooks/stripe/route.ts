@@ -34,5 +34,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (event.type === "charge.dispute.created") {
+    const dispute = event.data.object as Stripe.Dispute;
+    const paymentIntentId =
+      typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+    if (paymentIntentId) {
+      appendOrderEvent(paymentIntentId, "disputed", { source: "webhook", type: event.type });
+    }
+  }
+
   return NextResponse.json({ received: true });
 }
