@@ -19,6 +19,12 @@ From Lesson 6 onward, the payment flow requires the standalone Go verifier to be
 go run verifier/main.go
 ```
 
+From Lesson 7 onward, forward real Stripe webhooks to the dev server with the Stripe CLI (prints a `whsec_...` — put it in `.env` as `STRIPE_WEBHOOK_SECRET`):
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
 ## Lessons
 
 | # | Lesson | Demo |
@@ -29,13 +35,14 @@ go run verifier/main.go
 | 4 | [Human-in-the-loop approval](docs/lessons/lesson-04-human-approval.md) — a human (or a policy-checked auto-approve) signs off on the Cart Mandate with a third, distinct key before payment can happen | ![lesson 4 demo](docs/screenshots/lesson-04-flow.gif) |
 | 5 | [Payment Mandate + Stripe](docs/lessons/lesson-05-payment-mandate.md) — verifies the full intent → cart → approval chain, settles via a real Stripe test-mode PaymentIntent, and signs the result as a Payment Mandate | ![lesson 5 demo](docs/screenshots/lesson-05-flow.gif) |
 | 6 | [Signature verification & chain of custody](docs/lessons/lesson-06-chain-of-custody.md) — a standalone Go service independently re-verifies every mandate before settlement; fails closed if it's unreachable | ![lesson 6 demo](docs/screenshots/lesson-06-flow.gif) |
+| 7 | [Webhooks + reconciliation](docs/lessons/lesson-07-webhook-reconciliation.md) — an order stays `pending_confirmation` until an independent Stripe webhook (not the synchronous response) confirms it | ![lesson 7 demo](docs/screenshots/lesson-07-flow.gif) |
 
-More lessons (webhooks + reconciliation, failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
+More lessons (failure/dispute scenarios) land as the workshop progresses — see [docs/lessons](docs/lessons).
 
 ## Stack
 
 - **Frontend**: Next.js (App Router) + Tailwind
 - **Protocol**: [AP2](https://github.com/google-agentic-commerce/AP2) mandates (Intent / Cart / Payment)
-- **Settlement**: Stripe (test mode), via `STRIPE_SECRET_KEY` — see `.env.example`
+- **Settlement**: Stripe (test mode), via `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` — see `.env.example`
 - **Backend**: TypeScript (Next.js API routes) for orchestration/HTTP glue (from Lesson 2); **Go** for the standalone signature-verification service (`verifier/`, from Lesson 6) that runs as its own process, independent of the Next.js app
 - **Optional LLM**: OpenRouter (Gemini 3.8 Flash) for intent parsing, via `OPENROUTER_API_KEY` — falls back to a deterministic rule-based parser when unset
