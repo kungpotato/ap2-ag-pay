@@ -9,7 +9,7 @@ import { IntentMandate } from "@/lib/ap2/types";
 const INTENT_TTL_MS = 15 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
-  const { message, userId } = await req.json();
+  const { message, userId, ttlSeconds } = await req.json();
 
   if (typeof message !== "string" || message.trim().length === 0) {
     return NextResponse.json({ error: "message is required" }, { status: 400 });
@@ -17,6 +17,12 @@ export async function POST(req: NextRequest) {
 
   const llmConstraints = await parseIntentWithLLM(message);
   const constraints = llmConstraints ?? parseIntent(message);
+
+  // ttlSeconds is a demo-only escape hatch (Lesson 8) for genuinely
+  // expiring a validly-signed mandate quickly, instead of tampering with
+  // expiresAt (which would just break the signature, not exercise the
+  // expiry check).
+  const ttlMs = typeof ttlSeconds === "number" && ttlSeconds > 0 ? ttlSeconds * 1000 : INTENT_TTL_MS;
 
   const now = new Date();
   const mandate: IntentMandate = {
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest) {
     naturalLanguageDescription: message.trim(),
     constraints,
     createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + INTENT_TTL_MS).toISOString(),
+    expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
     parsedBy: llmConstraints ? "llm" : "rule-based",
   };
 
