@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { SignedEnvelope, IntentMandate, CartMandate } from "@/lib/ap2/types";
+import { SignedEnvelope, IntentMandate, CartMandate, CartApproval } from "@/lib/ap2/types";
 import { verifyEnvelopeInBrowser } from "@/lib/ap2/verifyClient";
 
 type VerifyState = "idle" | "checking" | "valid" | "invalid";
@@ -20,6 +20,12 @@ export default function AgentPage() {
 
   const [tamperError, setTamperError] = useState<string | null>(null);
   const [tamperLoading, setTamperLoading] = useState(false);
+
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [approvalEnvelope, setApprovalEnvelope] = useState<SignedEnvelope<CartApproval> | null>(null);
+  const [approvalVerify, setApprovalVerify] = useState<VerifyState>("idle");
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [loadingApproval, setLoadingApproval] = useState(false);
 
   async function askAgent() {
     setLoadingIntent(true);
@@ -48,6 +54,8 @@ export default function AgentPage() {
     setLoadingCart(true);
     setCartError(null);
     setCartVerify("idle");
+    setApprovalEnvelope(null);
+    setApprovalError(null);
     try {
       const res = await fetch("/api/agent/cart", {
         method: "POST",
@@ -63,8 +71,39 @@ export default function AgentPage() {
       setCartVerify("checking");
       const ok = await verifyEnvelopeInBrowser(data);
       setCartVerify(ok ? "valid" : "invalid");
+      if (ok && autoApprove) {
+        await approveCart(data, "auto-approved-within-budget");
+      }
     } finally {
       setLoadingCart(false);
+    }
+  }
+
+  async function approveCart(
+    cart: SignedEnvelope<CartMandate>,
+    method: "human-click" | "auto-approved-within-budget"
+  ) {
+    if (!intentEnvelope) return;
+    setLoadingApproval(true);
+    setApprovalError(null);
+    setApprovalVerify("idle");
+    try {
+      const res = await fetch("/api/agent/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intentEnvelope, cartEnvelope: cart, approvalMethod: method }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setApprovalError(data.error ?? "unknown error");
+        return;
+      }
+      setApprovalEnvelope(data);
+      setApprovalVerify("checking");
+      const ok = await verifyEnvelopeInBrowser(data);
+      setApprovalVerify(ok ? "valid" : "invalid");
+    } finally {
+      setLoadingApproval(false);
     }
   }
 
@@ -129,6 +168,11 @@ export default function AgentPage() {
               {intentEnvelope.payload.parsedBy}
             </p>
 
+            <label className="flex items-center gap-2 text-xs text-zinc-500">
+              <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} />
+              Auto-approve cart ถ้าอยู่ในงบของ intent (ข้ามขั้นตอนให้ human กดเอง)
+            </label>
+
             <div className="flex items-center gap-3 mt-2">
               <button
                 onClick={buildCart}
@@ -163,6 +207,37 @@ export default function AgentPage() {
                   รวม ฿{(cartEnvelope.payload.totalCents / 100).toFixed(2)} · {cartEnvelope.payload.items.length} เล่ม ·
                   ผูกกับ intent {cartEnvelope.payload.intentMandateId.slice(0, 8)}…
                 </p>
+
+                {!autoApprove && !approvalEnvelope && (
+                  <button
+                    onClick={() => approveCart(cartEnvelope, "human-click")}
+                    disabled={loadingApproval}
+                    className="self-start rounded-full bg-green-600 text-white text-sm px-5 py-2 disabled:opacity-40"
+                  >
+                    {loadingApproval ? "กำลังขออนุมัติ..." : "4. Approve & authorize payment (human)"}
+                  </button>
+                )}
+
+                {approvalError && <p className="text-xs text-red-600">ขออนุมัติไม่ผ่าน: {approvalError}</p>}
+
+                {approvalEnvelope && (
+                  <div className="flex flex-col gap-3 mt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">5. Cart Approval</span>
+                      <VerifyBadge state={approvalVerify} />
+                      <span className="text-xs text-zinc-400">
+                        signed by human approver ({approvalEnvelope.payload.approvalMethod})
+                      </span>
+                    </div>
+                    <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 max-h-56">
+                      {JSON.stringify(approvalEnvelope, null, 2)}
+                    </pre>
+                    <p className="text-xs text-zinc-500">
+                      พร้อมส่งต่อไปสร้าง Payment Mandate (บทเรียนที่ 5) — approval นี้เป็นข้อเท็จจริงแยกจาก cart mandate
+                      เองโดยสิ้นเชิง
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
