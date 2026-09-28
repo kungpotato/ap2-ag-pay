@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { SignedEnvelope, IntentMandate, CartMandate, CartApproval } from "@/lib/ap2/types";
+import { SignedEnvelope, IntentMandate, CartMandate, CartApproval, PaymentMandate } from "@/lib/ap2/types";
 import { verifyEnvelopeInBrowser } from "@/lib/ap2/verifyClient";
 
 type VerifyState = "idle" | "checking" | "valid" | "invalid";
@@ -26,6 +26,11 @@ export default function AgentPage() {
   const [approvalVerify, setApprovalVerify] = useState<VerifyState>("idle");
   const [approvalError, setApprovalError] = useState<string | null>(null);
   const [loadingApproval, setLoadingApproval] = useState(false);
+
+  const [paymentEnvelope, setPaymentEnvelope] = useState<SignedEnvelope<PaymentMandate> | null>(null);
+  const [paymentVerify, setPaymentVerify] = useState<VerifyState>("idle");
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [loadingPayment, setLoadingPayment] = useState(false);
 
   async function askAgent() {
     setLoadingIntent(true);
@@ -104,6 +109,31 @@ export default function AgentPage() {
       setApprovalVerify(ok ? "valid" : "invalid");
     } finally {
       setLoadingApproval(false);
+    }
+  }
+
+  async function payWithStripe() {
+    if (!intentEnvelope || !cartEnvelope || !approvalEnvelope) return;
+    setLoadingPayment(true);
+    setPaymentError(null);
+    setPaymentVerify("idle");
+    try {
+      const res = await fetch("/api/agent/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intentEnvelope, cartEnvelope, approvalEnvelope }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPaymentError(data.error ?? "unknown error");
+        return;
+      }
+      setPaymentEnvelope(data);
+      setPaymentVerify("checking");
+      const ok = await verifyEnvelopeInBrowser(data);
+      setPaymentVerify(ok ? "valid" : "invalid");
+    } finally {
+      setLoadingPayment(false);
     }
   }
 
@@ -232,10 +262,46 @@ export default function AgentPage() {
                     <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 max-h-56">
                       {JSON.stringify(approvalEnvelope, null, 2)}
                     </pre>
-                    <p className="text-xs text-zinc-500">
-                      พร้อมส่งต่อไปสร้าง Payment Mandate (บทเรียนที่ 5) — approval นี้เป็นข้อเท็จจริงแยกจาก cart mandate
-                      เองโดยสิ้นเชิง
-                    </p>
+
+                    {!paymentEnvelope && (
+                      <button
+                        onClick={payWithStripe}
+                        disabled={loadingPayment}
+                        className="self-start rounded-full bg-indigo-600 text-white text-sm px-5 py-2 disabled:opacity-40"
+                      >
+                        {loadingPayment ? "กำลังเรียก Stripe..." : "6. Pay with Stripe (test mode)"}
+                      </button>
+                    )}
+
+                    {paymentError && (
+                      <p className="text-xs text-red-600">
+                        settlement ไม่สำเร็จ: {paymentError}
+                        {paymentError.includes("STRIPE_SECRET_KEY") && (
+                          <>
+                            {" "}
+                            — ดูวิธีตั้งค่าใน{" "}
+                            <code className="bg-red-50 dark:bg-red-950 px-1 rounded">.env.example</code>
+                          </>
+                        )}
+                      </p>
+                    )}
+
+                    {paymentEnvelope && (
+                      <div className="flex flex-col gap-3 mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">7. Payment Mandate</span>
+                          <VerifyBadge state={paymentVerify} />
+                          <span className="text-xs text-zinc-400">signed by merchant · settled via Stripe</span>
+                        </div>
+                        <pre className="text-xs overflow-x-auto rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 max-h-56">
+                          {JSON.stringify(paymentEnvelope, null, 2)}
+                        </pre>
+                        <p className="text-xs text-zinc-500">
+                          Stripe PaymentIntent {paymentEnvelope.payload.paymentIntentId} · status{" "}
+                          <span className="font-medium">{paymentEnvelope.payload.paymentIntentStatus}</span>
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

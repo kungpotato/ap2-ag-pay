@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import Stripe from "stripe";
 import { verifyEnvelope, signPayload } from "@/lib/ap2/sign";
 import { MERCHANT_PRIVATE_KEY_PEM, MERCHANT_PUBLIC_KEY_PEM } from "@/lib/ap2/merchant-keys";
 import { getStripeClient } from "@/lib/stripe";
@@ -46,18 +47,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: cartEnvelope.payload.totalCents,
-    currency: "thb",
-    payment_method: "pm_card_visa",
-    confirm: true,
-    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
-    metadata: {
-      intentMandateId: intentEnvelope.payload.id,
-      cartMandateId: cartEnvelope.payload.id,
-      cartApprovalId: approvalEnvelope.payload.id,
-    },
-  });
+  let paymentIntent: Stripe.PaymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.create({
+      amount: cartEnvelope.payload.totalCents,
+      currency: "thb",
+      payment_method: "pm_card_visa",
+      confirm: true,
+      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+      metadata: {
+        intentMandateId: intentEnvelope.payload.id,
+        cartMandateId: cartEnvelope.payload.id,
+        cartApprovalId: approvalEnvelope.payload.id,
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Stripe.errors.StripeError ? err.message : "unexpected Stripe error";
+    return NextResponse.json({ error: `Stripe rejected the payment: ${message}` }, { status: 502 });
+  }
 
   const mandate: PaymentMandate = {
     type: "PaymentMandate",
