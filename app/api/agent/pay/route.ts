@@ -5,6 +5,7 @@ import { signPayload } from "@/lib/ap2/sign";
 import { verifyEnvelopeRemote } from "@/lib/ap2/verifyRemote";
 import { MERCHANT_PRIVATE_KEY_PEM, MERCHANT_PUBLIC_KEY_PEM } from "@/lib/ap2/merchant-keys";
 import { getStripeClient } from "@/lib/stripe";
+import { createOrder, appendOrderEvent } from "@/lib/orderStore";
 import { SignedEnvelope, IntentMandate, CartMandate, CartApproval, PaymentMandate } from "@/lib/ap2/types";
 
 export async function POST(req: NextRequest) {
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Stripe rejected the payment: ${message}` }, { status: 502 });
   }
 
+  const createdAt = new Date().toISOString();
   const mandate: PaymentMandate = {
     type: "PaymentMandate",
     id: randomUUID(),
@@ -90,8 +92,27 @@ export async function POST(req: NextRequest) {
     paymentProvider: "stripe",
     paymentIntentId: paymentIntent.id,
     paymentIntentStatus: paymentIntent.status,
-    createdAt: new Date().toISOString(),
+    createdAt,
   };
+
+  // Deliberately NOT marked "succeeded" yet, even though Stripe's synchronous
+  // response already says so — the order only becomes final once a webhook
+  // independently confirms it. See lib/orderStore.ts and
+  // app/api/webhooks/stripe/route.ts.
+  createOrder({
+    paymentIntentId: paymentIntent.id,
+    intentMandateId: intentEnvelope.payload.id,
+    cartMandateId: cartEnvelope.payload.id,
+    cartApprovalId: approvalEnvelope.payload.id,
+    amountCents: cartEnvelope.payload.totalCents,
+    currency: "THB",
+    status: "pending_confirmation",
+    createdAt,
+  });
+  appendOrderEvent(paymentIntent.id, "pending_confirmation", {
+    source: "sync-response",
+    type: `paymentIntent.status=${paymentIntent.status}`,
+  });
 
   const envelope = signPayload(mandate, MERCHANT_PRIVATE_KEY_PEM, MERCHANT_PUBLIC_KEY_PEM);
   return NextResponse.json(envelope);
