@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { findBook, formatTHB } from "@/lib/catalog";
 import { addToCart, readCart, removeFromCart, CartLine } from "@/lib/cart";
 
@@ -15,13 +15,23 @@ export default function CartPage() {
 }
 
 function CartView() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [lines, setLines] = useState<CartLine[]>([]);
+  const addedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const toAdd = searchParams.get("add");
-    setLines(toAdd ? addToCart(toAdd) : readCart());
-  }, [searchParams]);
+    if (toAdd && addedRef.current !== toAdd) {
+      addedRef.current = toAdd;
+      setLines(addToCart(toAdd));
+      router.replace("/cart");
+      return;
+    }
+    if (!toAdd) {
+      setLines(readCart());
+    }
+  }, [searchParams, router]);
 
   const items = lines
     .map((line) => ({ line, book: findBook(line.bookId) }))
